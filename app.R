@@ -15,25 +15,22 @@ library(rgl)
 open3d(useNULL = TRUE)
 scene <- scene3d()
 rgl.close()
-
 current.library <- ""
 polyhedra <- getAvailablePolyhedra()
 palette_choices <- list("rainbow")
 
-source.selected <- "netlib"
-polyhedron.name.selected <- "tetrahedron"
 
 # Define UI for application that draws a histogram
 ui <- shinyUI(fluidPage(
   theme = "polyhedra.css",
    # Application title
-  titlePanel("Polyhedra"), 
+  titlePanel("Rpolyhedra explorer"), 
    # Sidebar with a slider input for number of bins 
    sidebarLayout( 
      sidebarPanel(
        shiny::selectInput("polyhedron_source", label = "Source", choices = sort(unique(polyhedra$source))),
        shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra$polyhedron.name, selected = polyhedron.name.selected),
-       shiny::checkboxInput(inputId="show_axis", label = "Show Axis")
+       shiny::checkboxInput(inputId="show_axes", label = "Show Axes")
       ),
       # Show a plot of the generated distribution
       mainPanel(
@@ -42,7 +39,7 @@ ui <- shinyUI(fluidPage(
    )
 ))
 
-renderPolyhedron <- function(source, polyhedron.name){
+renderPolyhedron <- function(source, polyhedron.name, show.axes){
   open3d(useNULL = TRUE)
   rgl.bg( sphere =FALSE, fogtype = "none", color=c("black"))
   rgl.viewpoint(theta = 45,phi=10,zoom=0.8,fov=1)
@@ -51,7 +48,11 @@ renderPolyhedron <- function(source, polyhedron.name){
   pos3D <- rep(0,3)
   shape.rgl <- polyhedron$getRGLModel(size = 1, origin = pos3D)
   colors <- rainbow(length(shape.rgl))
+  if(show.axes == TRUE) {
+    axes3d()
+  }
   shade3d(shape.rgl,color=rainbow(ncol(shape.rgl$it)))
+
 }
 
 
@@ -69,7 +70,7 @@ server <- function(input, output, session) {
     print(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
       withProgress(message = 'Processing...', value = 0, {
-        renderPolyhedron(source= input$polyhedron_source, polyhedron.name = input$polyhedron_name)
+        renderPolyhedron(source= input$polyhedron_source, polyhedron.name = input$polyhedron_name, show.axes = input$show_axes)
         rglwidget()
       })
     }
