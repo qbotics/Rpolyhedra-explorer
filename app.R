@@ -19,6 +19,7 @@ current.library <- ""
 current.polyhedron <- ""
 polyhedra <- getAvailablePolyhedra()
 palette_choices <- list("rainbow")
+source.selected <- "netlib"
 
 
 # Define UI for application that draws a histogram
