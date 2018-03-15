@@ -1,0 +1,22 @@
+Package: RpolyhedraShiny
+Title: Rpolyhedra Web Frontend
+Version: 0.2.2
+Authors@R: c(
+    person("Alejandro", "Baranek",,"abaranek@dc.uba.ar", c("aut","com","cre", "cph")),
+    person("Leonardo","Belen",,"leobelen@gmail.com", c("aut","com","cph"))
+    )
+Maintainer: Leonardo Belen <leobelen@gmail.com>
+License: MIT
+DisplayMode: Showcase
+Type: Package
+Imports:
+  rgl, 
+  Rpolyhedra, 
+  shiny, 
+  shinyRGL
+LazyData: true
+RoxygenNote: 6.0.1
+Suggests: knitr, rmarkdown,
+    covr
+VignetteBuilder: knitr
+Depends: R (>= 3.0.0)

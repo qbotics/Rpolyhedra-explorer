@@ -16,6 +16,7 @@ open3d(useNULL = TRUE)
 scene <- scene3d()
 rgl.close()
 current.library <- ""
+current.polyhedron <- ""
 polyhedra <- getAvailablePolyhedra()
 palette_choices <- list("rainbow")
 
@@ -29,7 +30,7 @@ ui <- shinyUI(fluidPage(
    sidebarLayout( 
      sidebarPanel(
        shiny::selectInput("polyhedron_source", label = "Source", choices = sort(unique(polyhedra$source))),
-       shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra$polyhedron.name, selected = polyhedron.name.selected),
+       shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra$polyhedron.name, selected = current.polyhedron),
        shiny::checkboxInput(inputId="show_axes", label = "Show Axes")
       ),
       # Show a plot of the generated distribution
