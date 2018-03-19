@@ -60,7 +60,7 @@ updateSelection <- function(source, polyhedron, color){
   
   polyhedron.color.selected
   #assign("source.selected",source,envir = .GlobalEnv)
-  source.selected <<- source.selected
+  source.selected <<- source
   polyhedron.selected[[source]] <- polyhedron
   #assign("polyhedron.selected",polyhedron.selected,envir = .GlobalEnv)
   #debug
@@ -176,7 +176,7 @@ server <- function(input, output, session) {
       shiny::updateSelectInput(session=session, inputId = "polyhedron_color", choices = available.polyhedra$color, selected = current.color)
     }
     updateSelection(source = input$polyhedron_source, 
-                    polyhedron = input$polyhedron_source, 
+                    polyhedron = input$polyhedron_name, 
                     color = input$polyhedron_color)
     
     })
