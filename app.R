@@ -11,6 +11,7 @@ library(shiny)
 library(shinyRGL)
 library(Rpolyhedra)
 library(rgl)
+library(futile.logger)
 
 open3d(useNULL = TRUE)
 scene <- scene3d()
@@ -39,14 +40,14 @@ buildPolyhedraCatalog <- function(){
   #assign("polyhedra.list", polyhedra.list, envir = .GlobalEnv)
   polyhedra.list <<- polyhedra.list
   
-  print(paste("building polyhedra catalog for source",source.selected))
-  print(polyhedron.selected[[source.selected]])
+  futile.logger::flog.debug(paste("building polyhedra catalog for source",source.selected))
+  futile.logger::flog.debug(polyhedron.selected[[source.selected]])
   #Selecting first polyhedra.element
   if (is.null(polyhedron.selected[[source.selected]])){
     polyhedron.selected[[source.selected]] <- polyhedra.list[1]
     
     #debug
-    print(paste("selecting first polyhedron of source",source.selected,polyhedron.selected[[source.selected]]))
+    futile.logger::flog.debug(paste("selecting first polyhedron of source",source.selected,polyhedron.selected[[source.selected]]))
     polyhedron.color.selected[[source.selected]]<- available.polyhedra[1,]$color
     #assign("polyhedron.selected", polyhedron.selected, envir = .GlobalEnv)
     #assign("polyhedron.color.selected", polyhedron.color.selected, envir = .GlobalEnv)
@@ -61,7 +62,7 @@ buildPolyhedraCatalog()
 
 updateSelection <- function(source, polyhedron, color){
   #debug
-  print(paste("updateSelection",source,polyhedron,color))
+  futile.logger::flog.debug(paste("updateSelection",source,polyhedron,color))
   
   polyhedron.color.selected
   #assign("source.selected",source,envir = .GlobalEnv)
@@ -69,7 +70,7 @@ updateSelection <- function(source, polyhedron, color){
   polyhedron.selected[[source]] <- polyhedron
   #assign("polyhedron.selected",polyhedron.selected,envir = .GlobalEnv)
   #debug
-  print(polyhedron.selected)
+  futile.logger::flog.debug(polyhedron.selected)
   
   polyhedron.color.selected[[source]] <- color
   #assign("polyhedron.color.selected",polyhedron.color.selected,envir = .GlobalEnv)
@@ -127,20 +128,20 @@ renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.ax
   }
 }
 
-updateInputs<-function(controls,values){
+updateInputs<-function(session, controls,values){
   i<-1
   if ("polyhedron_name" %in% controls){
-    print("setting polyhedron")
+    futile.logger::flog.debug("setting polyhedron")
     ret <- shiny::updateSelectInput("polyhedron_name",  
-                                    choices = polyhedra.list, selected = values[i])
+                                    choices = polyhedra.list, selected = values[i], session = session)
     i <- i +1
   }
   if ("polyhedron_color" %in% controls){
-    print("setting color")
-    print(values[i])
-    print(available.polyhedra$color)
+    futile.logger::flog.debug("setting color")
+    futile.logger::flog.debug(values[i])
+    futile.logger::flog.debug(available.polyhedra$color)
     ret <- shiny::updateSelectInput("polyhedron_color", 
-                                    choices = available.polyhedra$color, selected = values[i])
+                                    choices = available.polyhedra$color, selected = values[i], session = session)
     i <- i +1
   }
   ret
@@ -155,7 +156,7 @@ server <- function(input, output, session) {
   on.exit(options(save))
   
   output$wdg <- renderRglwidget({
-    print(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
+    futile.logger::flog.debug(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
       withProgress(message = 'Processing...', value = 0, {
         renderPolyhedron(source= input$polyhedron_source, 
@@ -169,39 +170,39 @@ server <- function(input, output, session) {
   
   observe({
     #debug
-    print(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
+    futile.logger::flog.debug(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     
     new.source     <- input$polyhedron_source
     new.polyhedron <- input$polyhedron_name
     new.color      <- input$polyhedron_color
     
-    print(paste("new.polyhedron",new.polyhedron))
-    print(polyhedron.selected)
-    print(input$polyhedron.name)
+    futile.logger::flog.debug(paste("new.polyhedron",new.polyhedron))
+    futile.logger::flog.debug(polyhedron.selected)
+    futile.logger::flog.debug(input$polyhedron.name)
     
     init <- FALSE
     
     if(source.selected != new.source | init) {
       source.selected <<- new.source
       buildPolyhedraCatalog()
-      print(polyhedra.list[1:3])
+      futile.logger::flog.debug(polyhedra.list[1:3])
       #Evaluate encapsulate in a function
-      updateInputs(c("polyhedron_name","polyhedron_color"),
+      updateInputs(session, c("polyhedron_name","polyhedron_color"),
                    c(polyhedron.selected[[source.selected]],
                    polyhedron.color.selected[[source.selected]]
                    ))
       new.polyhedron <- polyhedron.selected[[new.source]]
     }
     
-    print(paste("new.polyhedron after source change",new.polyhedron))
+    futile.logger::flog.debug(paste("new.polyhedron after source change",new.polyhedron))
     
     #debug
-    print (paste("polyhedron selected",polyhedron.selected[[new.source]]))
-    print(paste(polyhedron.selected[[new.source]], new.polyhedron))
+    futile.logger::flog.debug (paste("polyhedron selected",polyhedron.selected[[new.source]]))
+    futile.logger::flog.debug(paste(polyhedron.selected[[new.source]], new.polyhedron))
     
     if(polyhedron.selected[[new.source]] != new.polyhedron | init) {
       new.color <- available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],"color"]
-      updateInputs("polyhedron_color",
+      updateInputs(session, "polyhedron_color",
                    new.color)
     }
     updateSelection(source = new.source, 
