@@ -39,9 +39,14 @@ buildPolyhedraCatalog <- function(){
   #assign("polyhedra.list", polyhedra.list, envir = .GlobalEnv)
   polyhedra.list <<- polyhedra.list
   
+  print(paste("building polyhedra catalog for source",source.selected))
+  print(polyhedron.selected[[source.selected]])
   #Selecting first polyhedra.element
   if (is.null(polyhedron.selected[[source.selected]])){
     polyhedron.selected[[source.selected]] <- polyhedra.list[1]
+    
+    #debug
+    print(paste("selecting first polyhedron of source",source.selected,polyhedron.selected[[source.selected]]))
     polyhedron.color.selected[[source.selected]]<- available.polyhedra[1,]$color
     #assign("polyhedron.selected", polyhedron.selected, envir = .GlobalEnv)
     #assign("polyhedron.color.selected", polyhedron.color.selected, envir = .GlobalEnv)
@@ -60,7 +65,7 @@ updateSelection <- function(source, polyhedron, color){
   
   polyhedron.color.selected
   #assign("source.selected",source,envir = .GlobalEnv)
-  source.selected <<- source.selected
+  source.selected <<- source
   polyhedron.selected[[source]] <- polyhedron
   #assign("polyhedron.selected",polyhedron.selected,envir = .GlobalEnv)
   #debug
@@ -72,6 +77,9 @@ updateSelection <- function(source, polyhedron, color){
   polyhedron.color.selected <<- polyhedron.color.selected
   
   polyhedron.selected 
+}
+
+changeSource <- function(){
 }
 
 
@@ -88,8 +96,10 @@ ui <- shinyUI(fluidPage(
    sidebarLayout( 
      sidebarPanel(
        shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
+       #Evaluate encapsulate in a function after changing source
        shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
        shiny::selectInput("polyhedron_color", label = "color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
+       
        shiny::checkboxInput(inputId="show_axes", label = "Show Axes")
       ),
       # Show a plot of the generated distribution
@@ -115,7 +125,25 @@ renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.ax
     }
     shade3d(shape.rgl,color=polyhedron.colors)
   }
+}
 
+updateInputs<-function(controls,values){
+  i<-1
+  if ("polyhedron_name" %in% controls){
+    print("setting polyhedron")
+    ret <- shiny::updateSelectInput("polyhedron_name",  
+                                    choices = polyhedra.list, selected = values[i])
+    i <- i +1
+  }
+  if ("polyhedron_color" %in% controls){
+    print("setting color")
+    print(values[i])
+    print(available.polyhedra$color)
+    ret <- shiny::updateSelectInput("polyhedron_color", 
+                                    choices = available.polyhedra$color, selected = values[i])
+    i <- i +1
+  }
+  ret
 }
 
 
@@ -143,41 +171,42 @@ server <- function(input, output, session) {
     #debug
     print(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     
-    new.source <- input$polyhedron_source
+    new.source     <- input$polyhedron_source
+    new.polyhedron <- input$polyhedron_name
+    new.color      <- input$polyhedron_color
+    
+    print(paste("new.polyhedron",new.polyhedron))
+    print(polyhedron.selected)
+    print(input$polyhedron.name)
+    
     init <- FALSE
-    if (is.null(polyhedron.selected[[new.source]])){
-      print("initializing selection in server")
-      updateSelection(source = input$polyhedron_source, 
-                      polyhedron = input$polyhedron_name, 
-                      color = input$polyhedron_color)
-      init <- TRUE
-      #debug
-      print("polyhedron selected in server")
-      print(polyhedron.selected)
-    }
-      
+    
     if(source.selected != new.source | init) {
+      source.selected <<- new.source
       buildPolyhedraCatalog()
-      shiny::updateSelectInput(session=session, inputId = "polyhedron_name", choices = polyhedra.list, selected = polyhedron.selected[[new.source]])
+      print(polyhedra.list[1:3])
+      #Evaluate encapsulate in a function
+      updateInputs(c("polyhedron_name","polyhedron_color"),
+                   c(polyhedron.selected[[source.selected]],
+                   polyhedron.color.selected[[source.selected]]
+                   ))
+      new.polyhedron <- polyhedron.selected[[new.source]]
     }
+    
+    print(paste("new.polyhedron after source change",new.polyhedron))
+    
     #debug
     print (paste("polyhedron selected",polyhedron.selected[[new.source]]))
-    print(paste(polyhedron.selected[[new.source]], input$polyhedron_name))
+    print(paste(polyhedron.selected[[new.source]], new.polyhedron))
     
-    if(polyhedron.selected[[new.source]] != input$polyhedron_name | init) {
-      #debug
-      print("changing color")
-      print(polyhedron.selected[[new.source]])
-      print(available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],])
-      print(available.polyhedra$name[1:5])
-      
-      current.color <- available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],"color"]
-      print(current.color)
-      shiny::updateSelectInput(session=session, inputId = "polyhedron_color", choices = available.polyhedra$color, selected = current.color)
+    if(polyhedron.selected[[new.source]] != new.polyhedron | init) {
+      new.color <- available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],"color"]
+      updateInputs("polyhedron_color",
+                   new.color)
     }
-    updateSelection(source = input$polyhedron_source, 
-                    polyhedron = input$polyhedron_source, 
-                    color = input$polyhedron_color)
+    updateSelection(source = new.source, 
+                    polyhedron = new.polyhedron, 
+                    color = new.color)
     
     })
 }
