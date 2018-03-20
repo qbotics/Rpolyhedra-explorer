@@ -80,37 +80,12 @@ updateSelection <- function(source, polyhedron, color){
   polyhedron.selected 
 }
 
-changeSource <- function(){
-}
-
 
 updateSelection(source     = source.selected, 
                 polyhedron = polyhedron.selected[[source.selected]],
                 color      = polyhedron.color.selected[[source.selected]])
 
-# Define UI for application that explore polyhedra database
-ui <- shinyUI(fluidPage(
-  theme = "polyhedra.css",
-   # Application title
-  titlePanel("Rpolyhedra explorer"), 
-   # Sidebar with a slider input for number of bins 
-   sidebarLayout( 
-     sidebarPanel(
-       shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
-       #Evaluate encapsulate in a function after changing source
-       shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
-       shiny::selectInput("polyhedron_color", label = "color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
-       
-       shiny::checkboxInput(inputId="show_axes", label = "Show Axes")
-      ),
-      # Show a plot of the generated distribution
-      mainPanel(
-          rglwidgetOutput("wdg")
-      )
-   )
-))
-
-renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.axes = FALSE){
+renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.axes = FALSE, file.name=FALSE){
   open3d(useNULL = TRUE)
   rgl.bg( sphere =FALSE, fogtype = "none", color=c("black"))
   rgl.viewpoint(theta = 45,phi=10,zoom=0.8,fov=1)
@@ -125,6 +100,9 @@ renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.ax
       axes3d(color = "white", family = "bitmap")
     }
     shade3d(shape.rgl,color=polyhedron.colors)
+    if(file.name!=FALSE) {
+      rgl::writeSTL(file.name, ascii = TRUE)
+    }
   }
 }
 
@@ -148,10 +126,34 @@ updateInputs<-function(session, controls,values){
 }
 
 
+# Define UI for application that explore polyhedra database
+ui <- shinyUI(fluidPage(
+  theme = "polyhedra.css",
+   # Application title
+  titlePanel("Rpolyhedra explorer"), 
+   # Sidebar with a slider input for number of bins 
+   sidebarLayout( 
+     sidebarPanel(
+       shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
+       #Evaluate encapsulate in a function after changing source
+       shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
+       shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
+       
+       shiny::checkboxInput(inputId="show_axes", label = "Show Axes"), 
+       shiny::downloadButton(outputId = "export_STL_btn", label = "Export to STL") 
+      ),
+      # Show a plot of the generated distribution
+      mainPanel(
+          rglwidgetOutput("wdg")
+      )
+   )
+))
+
 # Define server logic required to draw a polyhedron
 server <- function(input, output, session) {
   
   options(rgl.useNULL = TRUE)
+  
   save <- options(rgl.inShiny = TRUE)
   on.exit(options(save))
   
@@ -168,6 +170,7 @@ server <- function(input, output, session) {
     }
   })
   
+  ## general update of the page
   observe({
     #debug
     futile.logger::flog.debug(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
@@ -210,6 +213,22 @@ server <- function(input, output, session) {
                     color = new.color)
     
     })
+  
+  # Downloadable csv of selected dataset ----
+  
+  output$export_STL_btn <- downloadHandler(
+    filename = function() {
+      paste("Rpolyhedra", "_", input$polyhedron_source, "_", input$polyhedron_name, ".STL", sep = "")
+    },
+    content = function(file) {
+      print(file)
+      renderPolyhedron(source= input$polyhedron_source, 
+                       polyhedron.name = input$polyhedron_name, 
+                       polyhedron.colors = input$polyhedron_color,
+                       show.axes = input$show_axes, 
+                       file.name = file)
+    }
+  )
 }
 
 # Run the application 
