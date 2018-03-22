@@ -232,7 +232,7 @@ server <- function(input, output, session) {
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server, options=c("display.mode"))
 
 
 

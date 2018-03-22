@@ -7,7 +7,6 @@ Authors@R: c(
     )
 Maintainer: Leonardo Belen <leobelen@gmail.com>
 License: MIT
-DisplayMode: Showcase
 Type: Package
 Imports:
   rgl, 
