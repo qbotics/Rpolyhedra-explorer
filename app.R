@@ -1,6 +1,6 @@
 #
 # This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
+# the "Run App" button above.
 #
 # Find out more about building applications with Shiny here:
 #
@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(shinythemes)
 library(shinyRGL)
 library(Rpolyhedra)
 library(rgl)
@@ -128,21 +129,30 @@ updateInputs<-function(session, controls,values){
 
 # Define UI for application that explore polyhedra database
 ui <- shinyUI(fluidPage(
-  theme = "polyhedra.css",
+  theme = shinytheme("slate"),
    # Application title
-  titlePanel("Rpolyhedra explorer"), 
+  navbarPage("Rpolyhedra explorer"), 
    # Sidebar with a slider input for number of bins 
-   sidebarLayout( 
+   sidebarLayout(
      sidebarPanel(
        shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
        #Evaluate encapsulate in a function after changing source
        shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
        shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
-       
-       shiny::checkboxInput(inputId="show_axes", label = "Show Axes"), 
-       shiny::downloadButton(outputId = "export_STL_btn", label = "STL") 
+       shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
+       shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
+       shiny::actionButton(inputId = "cc-by-nc-sa",
+                           label = "",
+                           #onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
+                           onclick = 'location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/";',
+                           icon = icon(img(src = "www/by-nc-sa.png", width="36%")))
       ),
-      # Show a plot of the generated distribution
+     # sidebarPanel(
+     #   shiny::actionLink(inputId = "Rpolyhedra",
+     #                     label = "Rpolyhedra@github",
+     #                     onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");'
+     #                     )
+     # ),
       mainPanel(
           rglwidgetOutput("wdg")
       )
@@ -160,7 +170,7 @@ server <- function(input, output, session) {
   output$wdg <- renderRglwidget({
     futile.logger::flog.debug(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
-      withProgress(message = 'Processing...', value = 0, {
+      withProgress(message = "Processing...", value = 0, {
         renderPolyhedron(source= input$polyhedron_source, 
                          polyhedron.name = input$polyhedron_name, 
                          polyhedron.colors = input$polyhedron_color,
