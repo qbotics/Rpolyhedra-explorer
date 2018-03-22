@@ -12,7 +12,8 @@ Imports:
   rgl, 
   Rpolyhedra, 
   shiny, 
-  shinyRGL
+  shinyRGL, 
+  shinythemes
 LazyData: true
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown,

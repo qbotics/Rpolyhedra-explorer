@@ -141,18 +141,15 @@ ui <- shinyUI(fluidPage(
        shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
        shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
        shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
+       img(src = "by-nc-sa.png", width="36%"),
        shiny::actionButton(inputId = "cc-by-nc-sa",
-                           label = "",
-                           #onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
-                           onclick = 'location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/";',
-                           icon = icon(img(src = "www/by-nc-sa.png", width="36%")))
-      ),
-     # sidebarPanel(
-     #   shiny::actionLink(inputId = "Rpolyhedra",
-     #                     label = "Rpolyhedra@github",
-     #                     onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");'
-     #                     )
-     # ),
+                           label = "License",
+                           onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
+                           ),
+       shiny::actionLink(inputId = "Rpolyhedra",
+                         label = "Rpolyhedra@github",
+                         onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");')
+     ),
       mainPanel(
           rglwidgetOutput("wdg")
       )
