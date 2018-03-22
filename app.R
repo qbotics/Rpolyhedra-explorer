@@ -140,7 +140,7 @@ ui <- shinyUI(fluidPage(
        shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
        
        shiny::checkboxInput(inputId="show_axes", label = "Show Axes"), 
-       shiny::downloadButton(outputId = "export_STL_btn", label = "Export to STL") 
+       shiny::downloadButton(outputId = "export_STL_btn", label = "STL") 
       ),
       # Show a plot of the generated distribution
       mainPanel(
@@ -221,7 +221,7 @@ server <- function(input, output, session) {
       paste("Rpolyhedra", "_", input$polyhedron_source, "_", input$polyhedron_name, ".STL", sep = "")
     },
     content = function(file) {
-      print(file)
+      futile.logger::flog.info(paste("the STL file is ", file))
       renderPolyhedron(source= input$polyhedron_source, 
                        polyhedron.name = input$polyhedron_name, 
                        polyhedron.colors = input$polyhedron_color,
