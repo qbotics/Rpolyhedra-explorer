@@ -1,4 +1,4 @@
-Package: RpolyhedraShiny
+Package: RpolyhedraExplorer
 Title: Rpolyhedra Web Frontend
 Version: 0.2.2
 Authors@R: c(
