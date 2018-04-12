@@ -93,8 +93,7 @@ renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.ax
   
   polyhedron <- getPolyhedron(source=source, polyhedron.name = polyhedron.name)
   if (!is.null(polyhedron)){
-    pos3D <- rep(0,3)
-    shape.rgl <- polyhedron$getRGLModel(size = 1, origin = pos3D)
+    shape.rgl <- polyhedron$getRGLModel()
     colors <- rainbow(length(shape.rgl))
     if(show.axes == TRUE) {
       title3d(main=polyhedron.name,"", "x", "y", "z",color="white",family = "bitmap")
