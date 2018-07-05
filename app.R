@@ -25,6 +25,7 @@ polyhedron.color.selected <- list()
 
 
 buildPolyhedraCatalog <- function(){
+
   available.polyhedra <- getAvailablePolyhedra(sources = source.selected)
   available.polyhedra <- available.polyhedra[available.polyhedra$status=="scraped",]
   available.polyhedra$color <- rainbow(nrow(available.polyhedra))
