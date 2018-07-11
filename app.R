@@ -22,7 +22,16 @@ available.sources <- sort(unique(getAvailablePolyhedra()$source))
 source.selected <- "netlib"
 polyhedron.selected <- list()
 polyhedron.color.selected <- list()
-
+print(paste("Our home is on ", path.expand("~")))
+Rpolyhedra:::setDataDirEnvironment("HOME")
+data.dir <- Rpolyhedra:::getUserSpace()
+if(!dir.exists(data.dir)) {
+  dir.create(data.dir, recursive=TRUE, showWarnings = FALSE)
+}
+Rpolyhedra::downloadRPolyhedraSupportingFiles()
+Rpolyhedra:::updatePolyhedraDatabase()
+print(paste("We are on the", Rpolyhedra:::getDataEnv(), "environment"))
+print(paste("We are taking the database from", Rpolyhedra:::getPolyhedraRDSPath()))
 
 buildPolyhedraCatalog <- function(){
 
@@ -143,7 +152,7 @@ ui <- shinyUI(fluidPage(
        shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
        img(src = "by-nc-sa.png", width="36%"),
        shiny::actionButton(inputId = "cc-by-nc-sa",
-                           label = "License",
+                           label = "LICENSE",
                            onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
                            ),
        shiny::actionLink(inputId = "Rpolyhedra",

@@ -1,5 +1,6 @@
 Package: RpolyhedraExplorer
 Title: Rpolyhedra Web Frontend
+Description: A web frontend for Rpolyhedra
 Version: 0.2.2
 Authors@R: c(
     person("Alejandro", "Baranek",,"abaranek@dc.uba.ar", c("aut","com","cre", "cph")),
@@ -13,7 +14,8 @@ Imports:
   Rpolyhedra, 
   shiny, 
   shinyRGL, 
-  shinythemes
+  shinythemes, 
+  rmarkdown
 LazyData: true
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown,
