@@ -13,6 +13,7 @@ library(shinyRGL)
 library(Rpolyhedra)
 library(rgl)
 library(futile.logger)
+library(DT)
 
 open3d(useNULL = TRUE)
 scene <- scene3d()
@@ -22,7 +23,7 @@ available.sources <- sort(unique(getAvailablePolyhedra()$source))
 source.selected <- "netlib"
 polyhedron.selected <- list()
 polyhedron.color.selected <- list()
-
+Rpolyhedra::switchToFullDatabase(env="HOME")
 
 buildPolyhedraCatalog <- function(){
 
@@ -135,13 +136,7 @@ ui <- shinyUI(fluidPage(
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
      sidebarPanel(
-       shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
-       #Evaluate encapsulate in a function after changing source
-       shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
-       shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
-       shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
-       shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
-       img(src = "by-nc-sa.png", width="36%"),
+       DTOutput('polyhedraTable'),
        shiny::actionButton(inputId = "cc-by-nc-sa",
                            label = "License",
                            onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
@@ -164,6 +159,10 @@ server <- function(input, output, session) {
   save <- options(rgl.inShiny = TRUE)
   on.exit(options(save))
   
+  output$polyhedraTable <- DT::renderDataTable({
+    getAvailablePolyhedra()
+  }, options = list(orderClasses = TRUE, pageLength = 25, selection = "single"))
+  
   output$wdg <- renderRglwidget({
     futile.logger::flog.debug(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
@@ -178,49 +177,49 @@ server <- function(input, output, session) {
   })
   
   ## general update of the page
-  observe({
-    #debug
-    futile.logger::flog.debug(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
-    
-    new.source     <- input$polyhedron_source
-    new.polyhedron <- input$polyhedron_name
-    new.color      <- input$polyhedron_color
-    
-    futile.logger::flog.debug(paste("new.polyhedron",new.polyhedron))
-    futile.logger::flog.debug(polyhedron.selected)
-    futile.logger::flog.debug(input$polyhedron.name)
-    
-    init <- FALSE
-    
-    if(source.selected != new.source | init) {
-      source.selected <<- new.source
-      buildPolyhedraCatalog()
-      futile.logger::flog.debug(polyhedra.list[1:3])
-      #Evaluate encapsulate in a function
-      updateInputs(session, c("polyhedron_name","polyhedron_color"),
-                   c(polyhedron.selected[[source.selected]],
-                   polyhedron.color.selected[[source.selected]]
-                   ))
-      new.polyhedron <- polyhedron.selected[[new.source]]
-    }
-    
-    futile.logger::flog.debug(paste("new.polyhedron after source change",new.polyhedron))
-    
-    #debug
-    futile.logger::flog.debug (paste("polyhedron selected",polyhedron.selected[[new.source]]))
-    futile.logger::flog.debug(paste(polyhedron.selected[[new.source]], new.polyhedron))
-    
-    if(polyhedron.selected[[new.source]] != new.polyhedron | init) {
-      new.color <- available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],"color"]
-      updateInputs(session, "polyhedron_color",
-                   new.color)
-    }
-    updateSelection(source = new.source, 
-                    polyhedron = new.polyhedron, 
-                    color = new.color)
-    
-    })
-  
+  # observe({
+  #   #debug
+  #   futile.logger::flog.debug(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
+  #   
+  #   new.source     <- input$polyhedron_source
+  #   new.polyhedron <- input$polyhedron_name
+  #   new.color      <- input$polyhedron_color
+  #   
+  #   futile.logger::flog.debug(paste("new.polyhedron",new.polyhedron))
+  #   futile.logger::flog.debug(polyhedron.selected)
+  #   futile.logger::flog.debug(input$polyhedron.name)
+  #   
+  #   init <- FALSE
+  #   
+  #   if(source.selected != new.source | init) {
+  #     source.selected <<- new.source
+  #     buildPolyhedraCatalog()
+  #     futile.logger::flog.debug(polyhedra.list[1:3])
+  #     #Evaluate encapsulate in a function
+  #     updateInputs(session, c("polyhedron_name","polyhedron_color"),
+  #                  c(polyhedron.selected[[source.selected]],
+  #                  polyhedron.color.selected[[source.selected]]
+  #                  ))
+  #     new.polyhedron <- polyhedron.selected[[new.source]]
+  #   }
+  #   
+  #   futile.logger::flog.debug(paste("new.polyhedron after source change",new.polyhedron))
+  #   
+  #   #debug
+  #   futile.logger::flog.debug (paste("polyhedron selected",polyhedron.selected[[new.source]]))
+  #   futile.logger::flog.debug(paste(polyhedron.selected[[new.source]], new.polyhedron))
+  #   
+  #   if(polyhedron.selected[[new.source]] != new.polyhedron | init) {
+  #     new.color <- available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],"color"]
+  #     updateInputs(session, "polyhedron_color",
+  #                  new.color)
+  #   }
+  #   updateSelection(source = new.source, 
+  #                   polyhedron = new.polyhedron, 
+  #                   color = new.color)
+  #   
+  #   })
+  # 
   # Downloadable csv of selected dataset ----
   
   output$export_STL_btn <- downloadHandler(
