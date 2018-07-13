@@ -15,7 +15,8 @@ Imports:
   shiny, 
   shinyRGL, 
   shinythemes, 
-  rmarkdown
+  rmarkdown, 
+  shinyURL
 LazyData: true
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown,
