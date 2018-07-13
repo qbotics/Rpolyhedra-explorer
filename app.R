@@ -13,6 +13,7 @@ library(shinyRGL)
 library(Rpolyhedra)
 library(rgl)
 library(futile.logger)
+library(shinyURL)
 
 open3d(useNULL = TRUE)
 scene <- scene3d()
@@ -22,6 +23,8 @@ available.sources <- sort(unique(getAvailablePolyhedra()$source))
 source.selected <- "netlib"
 polyhedron.selected <- list()
 polyhedron.color.selected <- list()
+###### TODO: this is only until we solve the issue of on switchToFullDB in 0.2.7.
+#Rpolyhedra::switchToFullDatabase(env="HOME")
 print(paste("Our home is on ", path.expand("~")))
 Rpolyhedra:::setDataDirEnvironment("HOME")
 data.dir <- Rpolyhedra:::getUserSpace()
@@ -32,7 +35,7 @@ Rpolyhedra::downloadRPolyhedraSupportingFiles()
 Rpolyhedra:::updatePolyhedraDatabase()
 print(paste("We are on the", Rpolyhedra:::getDataEnv(), "environment"))
 print(paste("We are taking the database from", Rpolyhedra:::getPolyhedraRDSPath()))
-
+######## End of adhoc change.
 buildPolyhedraCatalog <- function(){
 
   available.polyhedra <- getAvailablePolyhedra(sources = source.selected)
@@ -150,6 +153,7 @@ ui <- shinyUI(fluidPage(
        shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
        shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
        shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
+       shinyURL.ui(display=FALSE),
        img(src = "by-nc-sa.png", width="36%"),
        shiny::actionButton(inputId = "cc-by-nc-sa",
                            label = "LICENSE",
@@ -167,12 +171,12 @@ ui <- shinyUI(fluidPage(
 
 # Define server logic required to draw a polyhedron
 server <- function(input, output, session) {
-  
+  shinyURL.server(session = session)
   options(rgl.useNULL = TRUE)
   
   save <- options(rgl.inShiny = TRUE)
   on.exit(options(save))
-  
+  #print(query)
   output$wdg <- renderRglwidget({
     futile.logger::flog.debug(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
@@ -190,7 +194,6 @@ server <- function(input, output, session) {
   observe({
     #debug
     futile.logger::flog.debug(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
-    
     new.source     <- input$polyhedron_source
     new.polyhedron <- input$polyhedron_name
     new.color      <- input$polyhedron_color
