@@ -14,6 +14,8 @@ library(Rpolyhedra)
 library(rgl)
 library(futile.logger)
 library(shinyURL)
+library(shinyjs)
+library(shinyAce)
 
 open3d(useNULL = TRUE)
 scene <- scene3d()
@@ -143,7 +145,8 @@ updateInputs<-function(session, controls,values){
 ui <- shinyUI(fluidPage(
   theme = shinytheme("slate"),
    # Application title
-  navbarPage("Rpolyhedra explorer"), 
+  navbarPage("Rpolyhedra explorer",
+      tabPanel("Explore",
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
      sidebarPanel(
@@ -165,13 +168,24 @@ ui <- shinyUI(fluidPage(
      ),
       mainPanel(
           rglwidgetOutput("wdg")
+          
       )
    )
-))
+      ), 
+   tabPanel("Code", 
+            mainPanel(
+              shinyjs::runcodeUI(type="ace", width = "100%", height = "200", code="library(\"Rpolyhedra\")", includeShinyjs = TRUE), 
+              rglwidgetOutput("runcodeWdg")
+            )
+            )
+)))
 
 # Define server logic required to draw a polyhedron
 server <- function(input, output, session) {
   shinyURL.server(session = session)
+  futile.logger::flog.info("starting runcodeServer")
+  shinyjs::runcodeServer(rgl.context = "output$runcodeWdg", envir = environment())
+  futile.logger::flog.info("runcodeServer was called")
   options(rgl.useNULL = TRUE)
   
   save <- options(rgl.inShiny = TRUE)

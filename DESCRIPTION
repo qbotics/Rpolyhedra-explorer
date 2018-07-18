@@ -16,7 +16,10 @@ Imports:
   shinyRGL, 
   shinythemes, 
   rmarkdown, 
-  shinyURL
+  shinyURL,
+  shinyjs,
+  shinyAce,
+  learnr
 LazyData: true
 RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown,
