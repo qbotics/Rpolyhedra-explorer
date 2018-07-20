@@ -13,7 +13,6 @@ library(shinyRGL)
 library(Rpolyhedra)
 library(rgl)
 library(futile.logger)
-library(shinyURL)
 
 open3d(useNULL = TRUE)
 scene <- scene3d()
@@ -25,7 +24,7 @@ polyhedron.selected <- list()
 polyhedron.color.selected <- list()
 ###### TODO: this is only until we solve the issue of on switchToFullDB in 0.2.7.
 #Rpolyhedra::switchToFullDatabase(env="HOME")
-print(paste("Our home is on ", path.expand("~")))
+futile.logger::flog.debug(paste("Our home is on ", path.expand("~")))
 Rpolyhedra:::setDataDirEnvironment("HOME")
 data.dir <- Rpolyhedra:::getUserSpace()
 if(!dir.exists(data.dir)) {
@@ -33,11 +32,10 @@ if(!dir.exists(data.dir)) {
 }
 Rpolyhedra::downloadRPolyhedraSupportingFiles()
 Rpolyhedra:::updatePolyhedraDatabase()
-print(paste("We are on the", Rpolyhedra:::getDataEnv(), "environment"))
-print(paste("We are taking the database from", Rpolyhedra:::getPolyhedraRDSPath()))
+futile.logger::flog.debug(paste("We are on the", Rpolyhedra:::getDataEnv(), "environment"))
+futile.logger::flog.debug(paste("We are taking the database from", Rpolyhedra:::getPolyhedraRDSPath()))
 ######## End of adhoc change.
 buildPolyhedraCatalog <- function(){
-
   available.polyhedra <- getAvailablePolyhedra(sources = source.selected)
   available.polyhedra <- available.polyhedra[available.polyhedra$status=="scraped",]
   available.polyhedra$color <- rainbow(nrow(available.polyhedra))
@@ -49,8 +47,7 @@ buildPolyhedraCatalog <- function(){
   
   polyhedra.list <- available.polyhedra$name
   names(polyhedra.list) <- available.polyhedra$text
-  
-  
+
   #assign("polyhedra.list", polyhedra.list, envir = .GlobalEnv)
   polyhedra.list <<- polyhedra.list
   
@@ -112,6 +109,8 @@ renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.ax
       title3d(main=polyhedron.name,"", "x", "y", "z",color="white",family = "bitmap")
       axes3d(color = "white", family = "bitmap")
     }
+    #debug
+    futile.logger::flog.debug(paste("polyhedron.colors", polyhedron.colors))
     shade3d(shape.rgl,color=polyhedron.colors)
     if(file.name!=FALSE) {
       rgl::writeSTL(file.name, ascii = TRUE)
@@ -140,43 +139,47 @@ updateInputs<-function(session, controls,values){
 
 
 # Define UI for application that explore polyhedra database
-ui <- shinyUI(fluidPage(
-  theme = shinytheme("slate"),
-   # Application title
-  navbarPage("Rpolyhedra explorer"), 
-   # Sidebar with a slider input for number of bins 
-   sidebarLayout(
-     sidebarPanel(
-       shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
-       #Evaluate encapsulate in a function after changing source
-       shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
-       shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
-       shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
-       shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
-       shinyURL.ui(display=FALSE),
-       img(src = "by-nc-sa.png", width="36%"),
-       shiny::actionButton(inputId = "cc-by-nc-sa",
-                           label = "LICENSE",
-                           onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
-                           ),
-       shiny::actionLink(inputId = "Rpolyhedra",
-                         label = "Rpolyhedra@github",
-                         onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");')
-     ),
-      mainPanel(
-          rglwidgetOutput("wdg")
-      )
-   )
-))
+ui <- function(request) {
+    shiny::bootstrapPage(
+      theme = shinytheme("slate"),
+       # Application title
+      shiny::navbarPage("Rpolyhedra explorer"), 
+       # Sidebar with a slider input for number of bins 
+      shiny::sidebarLayout(
+        shiny::sidebarPanel(
+           shiny::selectInput("polyhedron_source", label = "Source", choices = sort(available.sources),selected = source.selected),
+           #Evaluate encapsulate in a function after changing source
+           shiny::selectInput("polyhedron_name", label = "Polyhedron", choices = polyhedra.list, selected = polyhedron.selected[[source.selected]]),
+           shiny::selectInput("polyhedron_color", label = "Color", choices = available.polyhedra$color, selected = polyhedron.color.selected[[source.selected]]),
+           shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
+           shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
+           #shinyURL.ui(display=FALSE),
+           shiny::img(src = "by-nc-sa.png", width="36%"),
+           shiny::actionButton(inputId = "cc-by-nc-sa",
+                               label = "LICENSE",
+                               onclick = 'window.open(location.href="https://creativecommons.org/licenses/by-nc-sa/4.0/");',
+                               ),
+           shiny::bookmarkButton(),
+           shiny::actionLink(inputId = "Rpolyhedra",
+                             label = "Rpolyhedra@github",
+                             onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");')
+           
+         ),
+        shiny::mainPanel(
+            rglwidgetOutput("wdg")
+          )
+       )
+    )
+}
 
 # Define server logic required to draw a polyhedron
 server <- function(input, output, session) {
-  shinyURL.server(session = session)
+  #shinyURL.server(session = session)
   options(rgl.useNULL = TRUE)
+  #browser()
+  options(rgl.inShiny = TRUE)
+  on.exit(options(rgl.inShiny = FALSE))
   
-  save <- options(rgl.inShiny = TRUE)
-  on.exit(options(save))
-  #print(query)
   output$wdg <- renderRglwidget({
     futile.logger::flog.debug(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
@@ -219,7 +222,7 @@ server <- function(input, output, session) {
     futile.logger::flog.debug(paste("new.polyhedron after source change",new.polyhedron))
     
     #debug
-    futile.logger::flog.debug (paste("polyhedron selected",polyhedron.selected[[new.source]]))
+    futile.logger::flog.debug(paste("polyhedron selected",polyhedron.selected[[new.source]]))
     futile.logger::flog.debug(paste(polyhedron.selected[[new.source]], new.polyhedron))
     
     if(polyhedron.selected[[new.source]] != new.polyhedron | init) {
@@ -240,7 +243,7 @@ server <- function(input, output, session) {
       paste("Rpolyhedra", "_", input$polyhedron_source, "_", input$polyhedron_name, ".STL", sep = "")
     },
     content = function(file) {
-      futile.logger::flog.info(paste("the STL file is ", file))
+      futile.logger::flog.debug(paste("the STL file is ", file))
       renderPolyhedron(source= input$polyhedron_source, 
                        polyhedron.name = input$polyhedron_name, 
                        polyhedron.colors = input$polyhedron_color,
@@ -251,7 +254,7 @@ server <- function(input, output, session) {
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server, options=c("display.mode"))
+shinyApp(ui = ui, server = server, options=c("display.mode"), enableBookmarking = "url")
 
 
 
