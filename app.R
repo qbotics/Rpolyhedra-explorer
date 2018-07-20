@@ -97,10 +97,11 @@ updateSelection(source     = source.selected,
                 color      = polyhedron.color.selected[[source.selected]])
 
 renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.axes = FALSE, file.name=FALSE){
+  futile.logger::flog.info(paste("%%%%% We are in renderer source", source, "polyhedron.name", polyhedron.name, "polyhedron.colors", polyhedron.colors))
   open3d(useNULL = TRUE)
   rgl.bg( sphere =FALSE, fogtype = "none", color=c("black"))
   rgl.viewpoint(theta = 45,phi=10,zoom=0.8,fov=1)
-  
+  #browser()
   polyhedron <- getPolyhedron(source=source, polyhedron.name = polyhedron.name)
   if (!is.null(polyhedron)){
     shape.rgl <- polyhedron$getRGLModel()
@@ -119,6 +120,8 @@ renderPolyhedron <- function(source, polyhedron.name, polyhedron.colors, show.ax
 }
 
 updateInputs<-function(session, controls,values){
+  futile.logger::flog.info(paste("#####We are in update inputs", paste(controls, collapse=";"), paste(values, collapse=";")))
+
   i<-1
   if ("polyhedron_name" %in% controls){
     futile.logger::flog.debug("setting polyhedron")
@@ -127,12 +130,10 @@ updateInputs<-function(session, controls,values){
     i <- i +1
   }
   if ("polyhedron_color" %in% controls){
-    futile.logger::flog.debug("setting color")
-    futile.logger::flog.debug(values[i])
-    futile.logger::flog.debug(available.polyhedra$color)
+    futile.logger::flog.debug(paste("Setting color", values[i], " for available.polyhedra$color ", available.polyhedra$color))
     ret <- shiny::updateSelectInput("polyhedron_color", 
                                     choices = available.polyhedra$color, selected = values[i], session = session)
-    i <- i +1
+    polyhedron.color.selected[[values[i+1]]] <- values[i]
   }
   ret
 }
@@ -176,15 +177,17 @@ ui <- function(request) {
 server <- function(input, output, session) {
   #shinyURL.server(session = session)
   options(rgl.useNULL = TRUE)
-  #browser()
   options(rgl.inShiny = TRUE)
   on.exit(options(rgl.inShiny = FALSE))
+  setBookmarkExclude(c("cc-by-nc-sa", "Rpolyhedra"))
+  vals <- reactiveValues()
   
   output$wdg <- renderRglwidget({
-    futile.logger::flog.debug(paste("renderer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
+    futile.logger::flog.info(paste("we are in renderRglwidget polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "polyhedron_color", 
+                                   input$polyhedron_color, "show_axis", input$show_axis))
     if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
       withProgress(message = "Processing...", value = 0, {
-        renderPolyhedron(source= input$polyhedron_source, 
+         renderPolyhedron(source= input$polyhedron_source, 
                          polyhedron.name = input$polyhedron_name, 
                          polyhedron.colors = input$polyhedron_color,
                          show.axes = input$show_axes)
@@ -193,43 +196,68 @@ server <- function(input, output, session) {
     }
   })
   
+  onBookmarked(function(url) {
+    updateQueryString(url)
+  })
+  
+  # Read values from state$values when we restore
+  # onRestore(function(state) {
+  #   input$polyhedron_name <- state$input$polyhedron_name
+  #   input$polyhedron_color <- state$input$polyhedron_color
+  #   input$show_axis <- state$input$show_axis
+  #   input$polyhedron_source <- state$input$polyhedron_source
+  #   
+  # })
+  
   ## general update of the page
   observe({
     #debug
-    futile.logger::flog.debug(paste("observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "show_axis", input$show_axis))
-    new.source     <- input$polyhedron_source
-    new.polyhedron <- input$polyhedron_name
-    new.color      <- input$polyhedron_color
+    futile.logger::flog.info(paste("******** Observer polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "polyhedron_color", input$polyhedron_color, "show_axis", input$show_axis))
     
-    futile.logger::flog.debug(paste("new.polyhedron",new.polyhedron))
-    futile.logger::flog.debug(polyhedron.selected)
-    futile.logger::flog.debug(input$polyhedron.name)
+    new.source     <- input$polyhedron_source
+    new.color      <- input$polyhedron_color
+    new.polyhedron <- input$polyhedron_name
+    
+    futile.logger::flog.info(paste("new.polyhedron is ", new.polyhedron))
+    futile.logger::flog.info(paste("new.color is", new.color))
+    
+    #lets do something with the bookmarking on the url.
+    reactiveValuesToList(input)
+    session$doBookmark()
     
     init <- FALSE
     
+    #browser()
     if(source.selected != new.source | init) {
       source.selected <<- new.source
       buildPolyhedraCatalog()
-      futile.logger::flog.debug(polyhedra.list[1:3])
+      futile.logger::flog.info(polyhedra.list[1:3])
       #Evaluate encapsulate in a function
-      updateInputs(session, c("polyhedron_name","polyhedron_color"),
+      
+      
+      updateInputs(session, c("polyhedron_name","polyhedron_color", "polyhedron_source"),
                    c(polyhedron.selected[[source.selected]],
-                   polyhedron.color.selected[[source.selected]]
+                   #polyhedron.color.selected[[source.selected]]
+                   new.color, source.selected
                    ))
-      new.polyhedron <- polyhedron.selected[[new.source]]
+      #new.polyhedron <- available.polyhedra[[new.source]]
+      new.polyhedron <- polyhedron.selected[[source.selected]]
+      new.color <- polyhedron.color.selected[[source.selected]]
+      
     }
     
-    futile.logger::flog.debug(paste("new.polyhedron after source change",new.polyhedron))
+    futile.logger::flog.info(paste("new.polyhedron after source change",new.polyhedron))
     
     #debug
-    futile.logger::flog.debug(paste("polyhedron selected",polyhedron.selected[[new.source]]))
-    futile.logger::flog.debug(paste(polyhedron.selected[[new.source]], new.polyhedron))
+    futile.logger::flog.info(paste("polyhedron selected",available.polyhedra[[new.source]]))
     
     if(polyhedron.selected[[new.source]] != new.polyhedron | init) {
       new.color <- available.polyhedra[available.polyhedra$name == polyhedron.selected[[new.source]],"color"]
       updateInputs(session, "polyhedron_color",
                    new.color)
     }
+    #browser()
+    futile.logger::flog.info(paste("source", new.source, "polyhedron", new.polyhedron, "color", new.color)) 
     updateSelection(source = new.source, 
                     polyhedron = new.polyhedron, 
                     color = new.color)
@@ -253,8 +281,9 @@ server <- function(input, output, session) {
   )
 }
 
+enableBookmarking(store = "url")
 # Run the application 
-shinyApp(ui = ui, server = server, options=c("display.mode"), enableBookmarking = "url")
+shinyApp(ui = ui, server = server, options=c("display.mode"))
 
 
 
