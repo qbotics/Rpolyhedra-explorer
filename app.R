@@ -12,6 +12,7 @@ library(shinythemes)
 library(shinyRGL)
 library(Rpolyhedra)
 library(rgl)
+library(stringr)
 library(futile.logger)
 library(pryr)
 
@@ -122,40 +123,50 @@ server <- function(input, output, session) {
     futile.logger::flog.debug(paste("@@@@@ We are in Observe: polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name,
                                     "polyhedron_color", input$polyhedron_color))
     query.string <- getQueryString()
-    if(input$polyhedron_source != "" && !is.null(input$polyhedron_source)) {
+    if(input$polyhedron_source != "" && !is.null(input$polyhedron_source) && 
+       stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!="") {
       polyhedron.source <- input$polyhedron_source 
-    } else if(!is.null(query.string$polyhedron_source)){ 
+    } else if(!is.null(query.string$polyhedron_source) && 
+              stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!=""){ 
       polyhedron.source <- substring(substring(query.string$polyhedron_source, 2), 1, nchar(query.string$polyhedron_source) - 2)
     }else {
       polyhedron.source = available.sources[2]
     }
     
     
-    if(input$polyhedron_name != "" && !is.null(input$polyhedron_name)) {
+    if(input$polyhedron_name != "" && !is.null(input$polyhedron_name) && 
+       stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!="") {
       polyhedron.name <- input$polyhedron_name
-    } else if(!is.null(query.string$polyhedron_name)){ 
+    } else if(!is.null(query.string$polyhedron_name) && 
+              stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!=""){ 
       polyhedron.name <- substring(substring(query.string$polyhedron_name, 2), 1, nchar(query.string$polyhedron_name) - 2) 
     } else{
       polyhedron.name <- NULL
     }
     
-    if(input$polyhedron_color != "" && !is.null(input$polyhedron_color)) {
+    if(input$polyhedron_color != "" && !is.null(input$polyhedron_color) && 
+       stringr::str_replace_all(input$polyhedron_color, "\"", replacement = "")!="") {
       polyhedron.color <- input$polyhedron_color 
-    } else  if(!is.null(query.string$polyhedron_color)) { 
+    } else  if(!is.null(query.string$polyhedron_color) && 
+               stringr::str_replace_all(input$polyhedron_color, "\"", replacement = "")!="") { 
       polyhedron.color <- substring(substring(query.string$polyhedron_color, 2), 1, nchar(query.string$polyhedron_color) - 2)
     } else {
       polyhedron.color <- NULL
     }
     
+  
     updateSelectInput(session, "polyhedron_source",
                       choices = available.sources, selected=polyhedron.source)
     
     available.polyhedra <- getAvailablePolyhedra(sources = polyhedron.source)
     available.polyhedra <- available.polyhedra[available.polyhedra$status=="scraped",]
     available.polyhedra$color <- rainbow(nrow(available.polyhedra))
-    available.polyhedra$text <- paste(available.polyhedra$name,
-                                      "V:",available.polyhedra$vertices,
-                                      "F:",available.polyhedra$faces)
+    available.polyhedra$text <- tryCatch(expr = {paste(available.polyhedra$name,
+                                                       "V:",available.polyhedra$vertices,
+                                                       "F:",available.polyhedra$faces)})
+    #available.polyhedra$text <- paste(available.polyhedra$name,
+    #                                  "V:",available.polyhedra$vertices,
+    #                                  "F:",available.polyhedra$faces)
     polyhedra.list <- available.polyhedra$name
     names(polyhedra.list) <- available.polyhedra$text
     
