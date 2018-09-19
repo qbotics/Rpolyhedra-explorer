@@ -184,6 +184,8 @@ server <- function(input, output, session) {
     futile.logger::flog.info(paste("Memory used on observeEvent end", round(pryr::mem_used()/1000/1000), "MB"))
   })
   
+
+  
   renderPolyhedron <- function(polyhedron.source, polyhedron.name, polyhedron.colors, show.axes = FALSE, file.name=FALSE){
     futile.logger::flog.debug(paste("%%%%% We are in renderer polyhedron.source", polyhedron.source, "polyhedron.name", polyhedron.name, "polyhedron.colors", polyhedron.colors))
     open3d(useNULL = TRUE)
