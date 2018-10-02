@@ -1,7 +1,7 @@
 Package: RpolyhedraExplorer
 Title: Rpolyhedra Web Frontend
 Description: A web frontend for Rpolyhedra
-Version: 0.2.2
+Version: 0.2.7
 Authors@R: c(
     person("Alejandro", "Baranek",,"abaranek@dc.uba.ar", c("aut","com","cre", "cph")),
     person("Leonardo","Belen",,"leobelen@gmail.com", c("aut","com","cph"))
@@ -23,4 +23,4 @@ RoxygenNote: 6.0.1
 Suggests: knitr, rmarkdown,
     covr
 VignetteBuilder: knitr
-Depends: R (>= 3.0.0)
+Depends: R (>= 3.4.0)

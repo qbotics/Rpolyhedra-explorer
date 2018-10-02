@@ -22,6 +22,7 @@ options(rgl.inShiny = TRUE)
 #this has to remain in the global session. 
 Rpolyhedra:::setDataDirEnvironment("HOME")
 data.dir <- Rpolyhedra:::getUserSpace()
+
 if(!dir.exists(data.dir)) {
   dir.create(data.dir, recursive=TRUE, showWarnings = FALSE)
 }
@@ -29,9 +30,10 @@ if(!dir.exists(data.dir)) {
 Rpolyhedra::downloadRPolyhedraSupportingFiles()
 Rpolyhedra:::updatePolyhedraDatabase()
 
+
 available.sources <- sort(unique(getAvailablePolyhedra()$source))
 
-
+print(paste("Polyhedra in DB:",nrow(getAvailablePolyhedra())))
 
 # Define UI for application that explore polyhedra database
 ui <- function(request) {
@@ -75,7 +77,6 @@ ui <- function(request) {
         shiny::actionLink(inputId = "Rpolyhedra",
                           label = "Rpolyhedra@github",
                           onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");')
-        
       ),
       shiny::mainPanel(
         rglwidgetOutput("wdg")
@@ -91,18 +92,12 @@ server <- function(input, output, session) {
   #open3d(useNULL = TRUE)
   #scene <- scene3d()
   bookmarked <- FALSE
-  
-  
-  
   #callback for app exit
   onStop(function() {
     options(rgl.inShiny = FALSE)
     rgl.close()
     gc(full=TRUE, reset=TRUE)
   })
-  
-  
-  
   onBookmarked(function(url) {
     updateQueryString(url)
   })
@@ -117,11 +112,11 @@ server <- function(input, output, session) {
       )
     )
   }
-  
   shiny::observeEvent(c(input$polyhedron_source, input$polyhedron_name,  input$polyhedron_color), {
     futile.logger::flog.info(paste("Memory used on observeEvent start", round(pryr::mem_used()/1000/1000), "MB"))
     futile.logger::flog.debug(paste("@@@@@ We are in Observe: polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name,
                                     "polyhedron_color", input$polyhedron_color))
+    
     query.string <- getQueryString()
     if(input$polyhedron_source != "" && !is.null(input$polyhedron_source) && 
        stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!="") {
@@ -132,7 +127,6 @@ server <- function(input, output, session) {
     }else {
       polyhedron.source = available.sources[2]
     }
-    
     
     if(input$polyhedron_name != "" && !is.null(input$polyhedron_name) && 
        stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!="") {
@@ -154,20 +148,19 @@ server <- function(input, output, session) {
       polyhedron.color <- NULL
     }
     
-  
     updateSelectInput(session, "polyhedron_source",
                       choices = available.sources, selected=polyhedron.source)
     
     available.polyhedra <- getAvailablePolyhedra(sources = polyhedron.source)
     available.polyhedra <- available.polyhedra[available.polyhedra$status=="scraped",]
     available.polyhedra$color <- rainbow(nrow(available.polyhedra))
-    available.polyhedra$text <- tryCatch(expr = {paste(available.polyhedra$name,
+    available.polyhedra$text <- tryCatch(expr = {paste(available.polyhedra$scraped.name,
                                                        "V:",available.polyhedra$vertices,
                                                        "F:",available.polyhedra$faces)})
-    #available.polyhedra$text <- paste(available.polyhedra$name,
+    #available.polyhedra$text <- paste(available.polyhedra$scraped.name,
     #                                  "V:",available.polyhedra$vertices,
     #                                  "F:",available.polyhedra$faces)
-    polyhedra.list <- available.polyhedra$name
+    polyhedra.list <- available.polyhedra$scraped.name
     names(polyhedra.list) <- available.polyhedra$text
     
     if(is.null(polyhedron.name) || !polyhedron.name %in% polyhedra.list){
@@ -177,15 +170,12 @@ server <- function(input, output, session) {
                       choices = polyhedra.list, selected=polyhedron.name)
     
     if(is.null(polyhedron.color) || !polyhedron.color %in% available.polyhedra$color ) {
-      polyhedron.color <- available.polyhedra[available.polyhedra$name==polyhedron.name,]$color
+      polyhedron.color <- available.polyhedra[available.polyhedra$scraped.name==polyhedron.name,]$color
     }
     updateSelectInput(session, "polyhedron_color",
                       choices = available.polyhedra$color, selected=polyhedron.color)
     futile.logger::flog.info(paste("Memory used on observeEvent end", round(pryr::mem_used()/1000/1000), "MB"))
   })
-  
-
-  
   renderPolyhedron <- function(polyhedron.source, polyhedron.name, polyhedron.colors, show.axes = FALSE, file.name=FALSE){
     futile.logger::flog.debug(paste("%%%%% We are in renderer polyhedron.source", polyhedron.source, "polyhedron.name", polyhedron.name, "polyhedron.colors", polyhedron.colors))
     open3d(useNULL = TRUE)
@@ -217,7 +207,6 @@ server <- function(input, output, session) {
     reactiveValuesToList(input)
     session$doBookmark()
   }
-  
   output$wdg <- renderRglwidget({
     futile.logger::flog.debug(paste("we are in renderRglwidget polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "polyhedron_color", 
                                     input$polyhedron_color, "show_axis", input$show_axis))
@@ -233,12 +222,7 @@ server <- function(input, output, session) {
       rglwidget()
       #})
     }
-    
-    
   })
-  
-  
-  
 }
 
 enableBookmarking(store = "url")
