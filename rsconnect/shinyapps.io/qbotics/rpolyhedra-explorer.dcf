@@ -5,6 +5,6 @@ account: qbotics
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 304880
-bundleId: 1618990
+bundleId: 1620731
 url: https://qbotics.shinyapps.io/rpolyhedra-explorer/
-when: 1538516200.20725
+when: 1538582722.94461

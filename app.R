@@ -33,8 +33,6 @@ Rpolyhedra:::updatePolyhedraDatabase()
 
 available.sources <- sort(unique(getAvailablePolyhedra()$source))
 
-print(paste("Polyhedra in DB:",nrow(getAvailablePolyhedra())))
-
 # Define UI for application that explore polyhedra database
 ui <- function(request) {
   tags$head(HTML(
@@ -62,13 +60,10 @@ ui <- function(request) {
     shiny::sidebarLayout(
       shiny::sidebarPanel(
         shiny::selectInput("polyhedron_source", label = "Source", ""),
-        #shiny::uiOutput("ui.polyhedron.source"),
-        #Evaluate encapsulate in a function after changing source
         shiny::selectInput("polyhedron_name", label = "Polyhedron", ""),
         shiny::selectInput("polyhedron_color", label = "Color", ""),
         shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
         shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
-        #shinyURL.ui(display=FALSE),
         shiny::img(src = "by-nc-sa.png", width="36%"),
         shiny::actionButton(inputId = "cc-by-nc-sa",
                             label = "LICENSE",
@@ -89,8 +84,6 @@ ui <- function(request) {
 server <- function(input, output, session) {
   futile.logger::flog.info(paste("Memory used on shiny startup", round(pryr::mem_used()/1000/1000), "MB"))
   setBookmarkExclude(c("cc-by-nc-sa", "Rpolyhedra"))
-  #open3d(useNULL = TRUE)
-  #scene <- scene3d()
   bookmarked <- FALSE
   #callback for app exit
   onStop(function() {
@@ -113,7 +106,7 @@ server <- function(input, output, session) {
     )
   }
   shiny::observeEvent(c(input$polyhedron_source, input$polyhedron_name,  input$polyhedron_color), {
-    futile.logger::flog.info(paste("Memory used on observeEvent start", round(pryr::mem_used()/1000/1000), "MB"))
+    futile.logger::flog.debug(paste("Memory used on observeEvent start", round(pryr::mem_used()/1000/1000), "MB"))
     futile.logger::flog.debug(paste("@@@@@ We are in Observe: polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name,
                                     "polyhedron_color", input$polyhedron_color))
     
@@ -157,9 +150,6 @@ server <- function(input, output, session) {
     available.polyhedra$text <- tryCatch(expr = {paste(available.polyhedra$scraped.name,
                                                        "V:",available.polyhedra$vertices,
                                                        "F:",available.polyhedra$faces)})
-    #available.polyhedra$text <- paste(available.polyhedra$scraped.name,
-    #                                  "V:",available.polyhedra$vertices,
-    #                                  "F:",available.polyhedra$faces)
     polyhedra.list <- available.polyhedra$scraped.name
     names(polyhedra.list) <- available.polyhedra$text
     
@@ -174,15 +164,17 @@ server <- function(input, output, session) {
     }
     updateSelectInput(session, "polyhedron_color",
                       choices = available.polyhedra$color, selected=polyhedron.color)
-    futile.logger::flog.info(paste("Memory used on observeEvent end", round(pryr::mem_used()/1000/1000), "MB"))
+    futile.logger::flog.info(paste("Memory used after ending the observeEvent call", round(pryr::mem_used()/1000/1000), "MB"))
   })
   renderPolyhedron <- function(polyhedron.source, polyhedron.name, polyhedron.colors, show.axes = FALSE, file.name=FALSE){
     futile.logger::flog.debug(paste("%%%%% We are in renderer polyhedron.source", polyhedron.source, "polyhedron.name", polyhedron.name, "polyhedron.colors", polyhedron.colors))
+    shiny::incProgress(1)
     open3d(useNULL = TRUE)
     rgl.bg( sphere =FALSE, fogtype = "none", color=c("black"))
     rgl.viewpoint(theta = 45,phi=10,zoom=0.8,fov=1)
     ###browser()
     polyhedron <- getPolyhedron(source=polyhedron.source, polyhedron.name = polyhedron.name)
+    shiny::incProgress(1)
     if (!is.null(polyhedron)){
       shape.rgl <- polyhedron$getRGLModel()
       colors <- rainbow(length(shape.rgl))
@@ -190,8 +182,7 @@ server <- function(input, output, session) {
         title3d(main=polyhedron.name,"", "x", "y", "z",color="white",family = "bitmap")
         axes3d(color = "white", family = "bitmap")
       }
-      #debug
-      futile.logger::flog.debug(paste("polyhedron.colors", polyhedron.colors))
+      shiny::incProgress(1)
       if(is.null(polyhedron.colors) || polyhedron.colors == "")
       {
         available.polyhedra <- getAvailablePolyhedra(sources = polyhedron.source)
@@ -199,35 +190,37 @@ server <- function(input, output, session) {
         available.polyhedra$color <- rainbow(nrow(available.polyhedra))
         polyhedron.colors <- available.polyhedra[1,]$color
       }
+      shiny::incProgress(1)
       shade3d(shape.rgl,color=polyhedron.colors)
       if(file.name!=FALSE) {
         rgl::writeSTL(file.name, ascii = TRUE)
       }
     }
+    shiny::incProgress(1)
     reactiveValuesToList(input)
+    shiny::incProgress(1)
     session$doBookmark()
+    shiny::incProgress(1)
+    
   }
   output$wdg <- renderRglwidget({
-    futile.logger::flog.debug(paste("we are in renderRglwidget polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name, "polyhedron_color", 
-                                    input$polyhedron_color, "show_axis", input$show_axis))
-    futile.logger::flog.info(paste("Memory used before processing the RGL call", round(pryr::mem_used()/1000/1000), "MB"))
-    if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
-      #withProgress(message = "Processing...", value = 0, {
-        renderPolyhedron(polyhedron.source = input$polyhedron_source, 
+    
+      if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
+        withProgress(message = "Processing...", value = 0, {
+          renderPolyhedron(polyhedron.source = input$polyhedron_source, 
                          polyhedron.name = input$polyhedron_name, 
                          polyhedron.colors = input$polyhedron_color,
                          show.axes = input$show_axes)
-      #gcc <- gc(full=TRUE, reset=TRUE)
-      futile.logger::flog.info(paste("Memory used after processing the RGL call", round(pryr::mem_used()/1000/1000), "MB"))  
-      rglwidget()
-      #})
+        futile.logger::flog.info(paste("Memory used after processing the RGL call", round(pryr::mem_used()/1000/1000), "MB"))  
+        rglwidget()
+      })
     }
   })
 }
 
 enableBookmarking(store = "url")
-# Run the application 
 
+# Run the application 
 shinyApp(ui = ui, server = server, options=c("display.mode"))
 
 
