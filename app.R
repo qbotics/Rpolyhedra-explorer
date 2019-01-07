@@ -27,7 +27,7 @@ if(!dir.exists(data.dir)) {
   dir.create(data.dir, recursive=TRUE, showWarnings = FALSE)
 }
 
-Rpolyhedra::downloadRPolyhedraSupportingFiles()
+Rpolyhedra:::downloadRPolyhedraSupportingFiles()
 Rpolyhedra:::updatePolyhedraDatabase()
 
 
@@ -71,7 +71,8 @@ ui <- function(request) {
         ),
         shiny::actionLink(inputId = "Rpolyhedra",
                           label = "Rpolyhedra@github",
-                          onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");')
+                          onclick = 'window.open(location.href="https://github.com/qbotics/Rpolyhedra");'), 
+        shiny::textOutput(outputId = "version_str")
       ),
       shiny::mainPanel(
         rglwidgetOutput("wdg")
@@ -85,6 +86,7 @@ server <- function(input, output, session) {
   futile.logger::flog.info(paste("Memory used on shiny startup", round(pryr::mem_used()/1000/1000), "MB"))
   setBookmarkExclude(c("cc-by-nc-sa", "Rpolyhedra"))
   bookmarked <- FALSE
+  output$version_str <- shiny::renderText(paste("Version ", Rpolyhedra:::getPackageVersion()))
   #callback for app exit
   onStop(function() {
     options(rgl.inShiny = FALSE)
