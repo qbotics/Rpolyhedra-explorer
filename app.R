@@ -117,7 +117,7 @@ server <- function(input, output, session) {
        stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!="") {
       polyhedron.source <- input$polyhedron_source 
     } else if(!is.null(query.string$polyhedron_source) && 
-              stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!=""){ 
+              stringr::str_replace_all(query.string$polyhedron_source, "\"", replacement = "")!=""){ 
       polyhedron.source <- substring(substring(query.string$polyhedron_source, 2), 1, nchar(query.string$polyhedron_source) - 2)
     }else {
       polyhedron.source = available.sources[2]
@@ -127,7 +127,7 @@ server <- function(input, output, session) {
        stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!="") {
       polyhedron.name <- input$polyhedron_name
     } else if(!is.null(query.string$polyhedron_name) && 
-              stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!=""){ 
+              stringr::str_replace_all(query.string$polyhedron_name, "\"", replacement = "")!=""){ 
       polyhedron.name <- substring(substring(query.string$polyhedron_name, 2), 1, nchar(query.string$polyhedron_name) - 2) 
     } else{
       polyhedron.name <- NULL
@@ -137,7 +137,7 @@ server <- function(input, output, session) {
        stringr::str_replace_all(input$polyhedron_color, "\"", replacement = "")!="") {
       polyhedron.color <- input$polyhedron_color 
     } else  if(!is.null(query.string$polyhedron_color) && 
-               stringr::str_replace_all(input$polyhedron_color, "\"", replacement = "")!="") { 
+               stringr::str_replace_all(query.string$polyhedron_color, "\"", replacement = "")!="") { 
       polyhedron.color <- substring(substring(query.string$polyhedron_color, 2), 1, nchar(query.string$polyhedron_color) - 2)
     } else {
       polyhedron.color <- NULL
