@@ -45,7 +45,7 @@ ui <- function(request) {
     
     gtag('config', 'UA-112833384-2');
     </script>")) 
-    shiny::bootstrapPage(
+  shiny::bootstrapPage(
     theme = shinytheme("slate"),
     tags$head(
       tags$meta(charset="UTF-8"),
@@ -59,9 +59,9 @@ ui <- function(request) {
     # Sidebar with a slider input for number of bins 
     shiny::sidebarLayout(
       shiny::sidebarPanel(
-        shiny::selectInput("polyhedron_source", label = "Source", ""),
-        shiny::selectInput("polyhedron_name", label = "Polyhedron", ""),
-        shiny::selectInput("polyhedron_color", label = "Color", ""),
+        shiny::selectizeInput("polyhedron_source", label = "Source", "", multiple=FALSE, options=NULL),
+        shiny::selectizeInput("polyhedron_name", label = "Polyhedron", "",multiple=FALSE, options=NULL),
+        shiny::selectizeInput("polyhedron_color", label = "Color", "", multiple=FALSE, options=NULL),
         shiny::checkboxInput(inputId="show_axes", label = "Show Axes"),
         shiny::downloadButton(outputId = "export_STL_btn", label = "STL"),
         shiny::img(src = "by-nc-sa.png", width="36%"),
@@ -108,65 +108,71 @@ server <- function(input, output, session) {
     )
   }
   shiny::observeEvent(c(input$polyhedron_source, input$polyhedron_name,  input$polyhedron_color), {
-    futile.logger::flog.debug(paste("Memory used on observeEvent start", round(pryr::mem_used()/1000/1000), "MB"))
-    futile.logger::flog.debug(paste("@@@@@ We are in Observe: polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name,
-                                    "polyhedron_color", input$polyhedron_color))
-    
     query.string <- getQueryString()
-    if(input$polyhedron_source != "" && !is.null(input$polyhedron_source) && 
-       stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!="") {
-      polyhedron.source <- input$polyhedron_source 
-    } else if(!is.null(query.string$polyhedron_source) && 
-              stringr::str_replace_all(query.string$polyhedron_source, "\"", replacement = "")!=""){ 
-      polyhedron.source <- substring(substring(query.string$polyhedron_source, 2), 1, nchar(query.string$polyhedron_source) - 2)
-    }else {
-      polyhedron.source = available.sources[2]
-    }
     
-    if(input$polyhedron_name != "" && !is.null(input$polyhedron_name) && 
-       stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!="") {
-      polyhedron.name <- input$polyhedron_name
-    } else if(!is.null(query.string$polyhedron_name) && 
-              stringr::str_replace_all(query.string$polyhedron_name, "\"", replacement = "")!=""){ 
-      polyhedron.name <- substring(substring(query.string$polyhedron_name, 2), 1, nchar(query.string$polyhedron_name) - 2) 
-    } else{
-      polyhedron.name <- NULL
-    }
-    
-    if(input$polyhedron_color != "" && !is.null(input$polyhedron_color) && 
-       stringr::str_replace_all(input$polyhedron_color, "\"", replacement = "")!="") {
-      polyhedron.color <- input$polyhedron_color 
-    } else  if(!is.null(query.string$polyhedron_color) && 
-               stringr::str_replace_all(query.string$polyhedron_color, "\"", replacement = "")!="") { 
-      polyhedron.color <- substring(substring(query.string$polyhedron_color, 2), 1, nchar(query.string$polyhedron_color) - 2)
+    if(!is.null(query.string$polyhedron.name) && str_length(query.string$polyhedron.name) < 4)
+    {
+      futile.logger::flog.debug(paste("Passing by as the length of the query string is less than 4"))
     } else {
-      polyhedron.color <- NULL
+      futile.logger::flog.debug(paste("Memory used on observeEvent start", round(pryr::mem_used()/1000/1000), "MB"))
+      futile.logger::flog.debug(paste("@@@@@ We are in Observe: polyhedron_source", input$polyhedron_source, "polyhedron_name", input$polyhedron_name,
+                                      "polyhedron_color", input$polyhedron_color))
+      
+      if(input$polyhedron_source != "" && !is.null(input$polyhedron_source) && 
+         stringr::str_replace_all(input$polyhedron_source, "\"", replacement = "")!="") {
+        polyhedron.source <- input$polyhedron_source 
+      } else if(!is.null(query.string$polyhedron_source) && 
+                stringr::str_replace_all(query.string$polyhedron_source, "\"", replacement = "")!=""){ 
+        polyhedron.source <- substring(substring(query.string$polyhedron_source, 2), 1, nchar(query.string$polyhedron_source) - 2)
+      }else {
+        polyhedron.source = available.sources[2]
+      }
+      
+      if(input$polyhedron_name != "" && !is.null(input$polyhedron_name) && 
+         stringr::str_replace_all(input$polyhedron_name, "\"", replacement = "")!="") {
+        polyhedron.name <- input$polyhedron_name
+      } else if(!is.null(query.string$polyhedron_name) && 
+                stringr::str_replace_all(query.string$polyhedron_name, "\"", replacement = "")!=""){ 
+        polyhedron.name <- substring(substring(query.string$polyhedron_name, 2), 1, nchar(query.string$polyhedron_name) - 2) 
+      } else{
+        polyhedron.name <- NULL
+      }
+      
+      if(input$polyhedron_color != "" && !is.null(input$polyhedron_color) && 
+         stringr::str_replace_all(input$polyhedron_color, "\"", replacement = "")!="") {
+        polyhedron.color <- input$polyhedron_color 
+      } else  if(!is.null(query.string$polyhedron_color) && 
+                 stringr::str_replace_all(query.string$polyhedron_color, "\"", replacement = "")!="") { 
+        polyhedron.color <- substring(substring(query.string$polyhedron_color, 2), 1, nchar(query.string$polyhedron_color) - 2)
+      } else {
+        polyhedron.color <- NULL
+      }
+      
+      updateSelectInput(session, "polyhedron_source",
+                        choices = available.sources, selected=polyhedron.source)
+      
+      available.polyhedra <- getAvailablePolyhedra(sources = polyhedron.source)
+      available.polyhedra <- available.polyhedra[available.polyhedra$status=="scraped",]
+      available.polyhedra$color <- rainbow(nrow(available.polyhedra))
+      available.polyhedra$text <- tryCatch(expr = {paste(available.polyhedra$scraped.name,
+                                                         "V:",available.polyhedra$vertices,
+                                                         "F:",available.polyhedra$faces)})
+      polyhedra.list <- available.polyhedra$scraped.name
+      names(polyhedra.list) <- available.polyhedra$text
+      
+      if(is.null(polyhedron.name) || !polyhedron.name %in% polyhedra.list){
+        polyhedron.name <- polyhedra.list[1]
+      }
+      updateSelectInput(session, "polyhedron_name",
+                        choices = polyhedra.list, selected=polyhedron.name)
+      
+      if(is.null(polyhedron.color) || !polyhedron.color %in% available.polyhedra$color ) {
+        polyhedron.color <- available.polyhedra[available.polyhedra$scraped.name==polyhedron.name,]$color
+      }
+      updateSelectInput(session, "polyhedron_color",
+                        choices = available.polyhedra$color, selected=polyhedron.color)
+      futile.logger::flog.info(paste("Memory used after ending the observeEvent call", round(pryr::mem_used()/1000/1000), "MB"))
     }
-    
-    updateSelectInput(session, "polyhedron_source",
-                      choices = available.sources, selected=polyhedron.source)
-    
-    available.polyhedra <- getAvailablePolyhedra(sources = polyhedron.source)
-    available.polyhedra <- available.polyhedra[available.polyhedra$status=="scraped",]
-    available.polyhedra$color <- rainbow(nrow(available.polyhedra))
-    available.polyhedra$text <- tryCatch(expr = {paste(available.polyhedra$scraped.name,
-                                                       "V:",available.polyhedra$vertices,
-                                                       "F:",available.polyhedra$faces)})
-    polyhedra.list <- available.polyhedra$scraped.name
-    names(polyhedra.list) <- available.polyhedra$text
-    
-    if(is.null(polyhedron.name) || !polyhedron.name %in% polyhedra.list){
-      polyhedron.name <- polyhedra.list[1]
-    }
-    updateSelectInput(session, "polyhedron_name",
-                      choices = polyhedra.list, selected=polyhedron.name)
-    
-    if(is.null(polyhedron.color) || !polyhedron.color %in% available.polyhedra$color ) {
-      polyhedron.color <- available.polyhedra[available.polyhedra$scraped.name==polyhedron.name,]$color
-    }
-    updateSelectInput(session, "polyhedron_color",
-                      choices = available.polyhedra$color, selected=polyhedron.color)
-    futile.logger::flog.info(paste("Memory used after ending the observeEvent call", round(pryr::mem_used()/1000/1000), "MB"))
   })
   renderPolyhedron <- function(polyhedron.source, polyhedron.name, polyhedron.colors, show.axes = FALSE, file.name=FALSE){
     futile.logger::flog.debug(paste("%%%%% We are in renderer polyhedron.source", polyhedron.source, "polyhedron.name", polyhedron.name, "polyhedron.colors", polyhedron.colors))
@@ -207,9 +213,9 @@ server <- function(input, output, session) {
   }
   output$wdg <- renderRglwidget({
     
-      if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
-        withProgress(message = "Processing...", value = 0, {
-          renderPolyhedron(polyhedron.source = input$polyhedron_source, 
+    if(!is.null(input$polyhedron_source) && !is.null(input$polyhedron_name)){
+      withProgress(message = "Processing...", value = 0, {
+        renderPolyhedron(polyhedron.source = input$polyhedron_source, 
                          polyhedron.name = input$polyhedron_name, 
                          polyhedron.colors = input$polyhedron_color,
                          show.axes = input$show_axes)
